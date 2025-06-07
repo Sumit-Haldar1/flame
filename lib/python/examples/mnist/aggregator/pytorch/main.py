@@ -28,6 +28,10 @@ from flame.config import Config
 from flame.dataset import Dataset
 from flame.mode.horizontal.top_aggregator import TopAggregator
 from torchvision import datasets, transforms
+from flame.mode.message import MessageType
+from flame.common.util import weights_to_model_device
+from flame.optimizer.train_result import TrainResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +137,60 @@ class PyTorchMnistAggregator(TopAggregator):
             'test-loss': test_loss,
             'test-accuracy': test_accuray
         })
+
+    def _aggregate_weights(self, tag: str) -> None:
+       
+        channel = self.cm.get_by_tag(tag)
+        if not channel:
+            return
+
+        total = 0
+        summed_weights = None
+        count_total = 0
+
+        for msg, metadata in channel.recv_fifo(channel.ends()):
+            end, timestamp = metadata
+            if not msg:
+                logger.debug(f"No data from {end}; skipping it")
+                continue
+
+            logger.debug(f"received data from {end}")
+            #channel.set_end_property(end, PROP_ROUND_END_TIME, (round, timestamp))
+
+            weights = None
+            count = 0
+
+            if MessageType.WEIGHTS in msg:
+                weights = weights_to_model_device(msg[MessageType.WEIGHTS], self.model)
+                print(weights['conv1.weight'][0])
+
+            if MessageType.DATASET_SIZE in msg:
+                count = msg[MessageType.DATASET_SIZE]
+
+            if MessageType.DATASAMPLER_METADATA in msg:
+                self.datasampler.handle_metadata_from_trainer(
+                    msg[MessageType.DATASAMPLER_METADATA], end, channel
+                )
+
+            logger.debug(f"{end}'s parameters trained with {count} samples")
+
+            if weights is not None and count > 0:
+                count_total += count
+
+                if summed_weights is None:
+                    summed_weights = {k: v.clone() for k, v in weights.items()}
+                else:
+                    for k in summed_weights:
+                        summed_weights[k] += weights[k]
+
+        logger.debug(f"Received and summed weights from {len(channel.ends())} trainers")
+
+        if summed_weights is not None and count_total > 0:
+            self.cache["sum"] = TrainResult(summed_weights, count_total)
+            #print(summed_weights)
+            logger.info(f"Stored summed weights in cache with total count {count_total}")
+        else:
+            logger.warning("No valid weights received to sum")
 
 
 if __name__ == "__main__":

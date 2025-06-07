@@ -1,6 +1,8 @@
 {
-  "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa745",
+  "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa742",
   "backend": "p2p",
+  
+ 
   "brokers": [
     {
       "host": "localhost",
@@ -47,10 +49,11 @@
   "hyperparameters": {
     "batchSize": 32,
     "learningRate": 0.01,
+    "rank": 1,
+    "world_size": 2,
     "rounds": 5,
-      "rank": 0,
-  "world_size": 2,
     "epochs": 2
+   
   },
    "tasklet": {
     "loop": {
@@ -82,4 +85,5 @@
   "realm": "default/us/west",
   "role": "trainer"
 
+ 
 }

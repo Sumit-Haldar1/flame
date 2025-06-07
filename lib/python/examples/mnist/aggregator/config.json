@@ -1,5 +1,5 @@
 {
-    "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa742",
+    "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa749",
     "backend": "p2p",
     "brokers": [
         {
@@ -47,8 +47,11 @@
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
-        "rounds": 20
+        
+        "rounds": 30
     },
+
+   
     "baseModel": {
         "name": "",
         "version": 2
