@@ -54,8 +54,10 @@ class HorizontalSplitTrainer(Trainer):
         
         self.batch_size = self.config.hyperparameters.batch_size or 32
         self.model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
-        self.optimizer = optim.Adadelta(self.model.parameters())
+        #self.optimizer = optim.Adadelta(self.model.parameters())
         self.train_loader = None
+
+        self.tmp_model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
 
 
         
@@ -77,18 +79,20 @@ class HorizontalSplitTrainer(Trainer):
         self.train_loader = data_utils.DataLoader(subset, batch_size=self.batch_size, shuffle=True)
 
     def train(self, i = 0):
+
+        self._update_model()
         
+        self.optimizer = optim.Adadelta(self.model.parameters())
         for epoch in range(1, self.epochs + 1):
-            self._update_model()
+            #self._update_model()
             self._train_epoch(epoch)
-            self._update_weights()
+            #self._update_weights()
         self.dataset_size = len(self.train_loader.dataset)
+
+        self._update_weights()
+
+        print("after training!!! conv1", self.weights['conv1.weight'][self.rank * 16])
         
-        
-
-
-
-       
 
     def _train_epoch(self, epoch):
         self.model.train()
@@ -117,20 +121,49 @@ class HorizontalSplitTrainer(Trainer):
         
         # print("conv1", self.weights['conv1.weight'][0])
 
+        '''
         full_weights = {}
         for name, param in self.model.state_dict().items():
             full_weights[name] = self._pad_tensor(name, param)
         
       
         if not hasattr(self, "prev_weights") or self.prev_weights is None:
+            print("*****************************")
             self.prev_weights = full_weights.copy()
         else:
-            self.prev_weights = self.weights
+            print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+            self.prev_weights = self.weights #self.weights
 
         self.weights = full_weights
 
         print("lfro child")
-        print("conv1", self.weights['conv1.weight'][0])    
+        print("conv1", self.weights['conv1.weight'][self.rank * 16])
+        '''
+
+        self.prev_weights = self._slice_weights(self.weights) 
+        self.weights = self.model.state_dict()
+
+        print(f"\n ======== self.weights: {self.weights}")
+
+        print(f"\n +++++++++ self.prev_weights: {self.prev_weights}")
+
+        self.tmp_model.load_state_dict(self.prev_weights, strict=False)
+        full_prev_weights = {}
+        for name, param in self.tmp_model.state_dict().items():
+            full_prev_weights[name] = self._pad_tensor(name, param)
+
+        self.prev_weights = full_prev_weights
+
+
+        self.model.load_state_dict(self.weights, strict=False)
+        full_weights = {}
+        for name, param in self.model.state_dict().items():
+            full_weights[name] = self._pad_tensor(name, param)
+
+        self.weights = full_weights
+
+        print(f"\n ======== self.weights: {self.weights}")
+        print(f"\n +++++++++ self.prev_weights: {self.prev_weights}")
 
     def _pad_tensor(self, name, tensor):
         shape_map = {
@@ -149,12 +182,7 @@ class HorizontalSplitTrainer(Trainer):
 
             if name == "conv1.weight":
 
-                padded[self.rank * 16:(self.rank + 1) * 16] = tensor
-                # print(self.rank)
-                # print("Tensor", tensor[0])
-                # print('#############################################################')
-                # print("Padded", padded[0])
-                # print("Padded", padded[len(padded)-1])                   
+                padded[self.rank * 16:(self.rank + 1) * 16] = tensor               
             elif name == "conv1.bias":
                 padded[self.rank * 16:(self.rank + 1) * 16] = tensor
             elif name == "conv2.weight":

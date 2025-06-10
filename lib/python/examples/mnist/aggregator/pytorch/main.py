@@ -20,7 +20,8 @@ https://github.com/pytorch/examples/blob/master/mnist/main.py.
 """
 
 import logging
-
+import time
+from copy import deepcopy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -154,15 +155,17 @@ class PyTorchMnistAggregator(TopAggregator):
                 logger.debug(f"No data from {end}; skipping it")
                 continue
 
-            logger.debug(f"received data from {end}")
+            logger.info(f"received data from {end}")
             #channel.set_end_property(end, PROP_ROUND_END_TIME, (round, timestamp))
 
             weights = None
             count = 0
 
             if MessageType.WEIGHTS in msg:
+                #print(f"received the weights: {msg[MessageType.WEIGHTS]}")
                 weights = weights_to_model_device(msg[MessageType.WEIGHTS], self.model)
-                print(weights['conv1.weight'][0])
+                #print(f"rank 0: {weights['conv1.weight'][0]}")
+                #print(f"rank 1: {weights['conv1.weight'][16]}")
 
             if MessageType.DATASET_SIZE in msg:
                 count = msg[MessageType.DATASET_SIZE]
@@ -171,7 +174,9 @@ class PyTorchMnistAggregator(TopAggregator):
                 self.datasampler.handle_metadata_from_trainer(
                     msg[MessageType.DATASAMPLER_METADATA], end, channel
                 )
-
+            
+            #print("conv1", weights['conv1.weight'][0])
+            
             logger.debug(f"{end}'s parameters trained with {count} samples")
 
             if weights is not None and count > 0:
@@ -190,8 +195,27 @@ class PyTorchMnistAggregator(TopAggregator):
             #print(summed_weights)
             logger.info(f"Stored summed weights in cache with total count {count_total}")
         else:
-            logger.warning("No valid weights received to sum")
+            logger.info("No valid weights received to sum")
 
+        #print("ahsdhsakfhadslkflsakj", len(self.cache))
+
+        # optimizer conducts optimization (in this case, aggregation)
+        global_weights = self.optimizer.do(
+                deepcopy(self.weights),
+                self.cache,
+                total=count_total,
+                num_trainers=len(channel.ends()),
+                )
+        if global_weights is None:
+            logger.info("failed model aggregation")
+            time.sleep(1)
+            return
+        # set global weights
+        self.weights = global_weights
+
+        #print("self.weights, ", self.weights)
+        # update model with global weights
+        self._update_model()
 
 if __name__ == "__main__":
     import argparse

@@ -139,7 +139,9 @@ class Trainer(Role, metaclass=ABCMeta):
 
         if MessageType.WEIGHTS in msg:
             self.weights = weights_to_model_device(msg[MessageType.WEIGHTS], self.model)
-            self._update_model()
+
+            print("\n\n\n!!!!!!!!!!!!!!!! Received weights from aggregator: ", self.weights)
+            #self._update_model()
 
         if MessageType.EOT in msg:
             self._work_done = msg[MessageType.EOT]
@@ -173,11 +175,17 @@ class Trainer(Role, metaclass=ABCMeta):
         # one aggregator is sufficient
         end = channel.one_end(VAL_CH_STATE_SEND)
 
-        self._update_weights()
+        #self._update_weights()
+
+        #print(f"\n ======== self.weights: {self.weights}")
+
+        #print(f"\n +++++++++ self.prev_weights: {self.prev_weights}")
 
         delta_weights = self._delta_weights_fn(self.weights, self.prev_weights)
 
-        delta_weights = self.privacy.apply_dp_fn(delta_weights)
+        #delta_weights = self.privacy.apply_dp_fn(delta_weights)
+
+        print("before sending!!! delta_weights", delta_weights)
 
         self.regularizer.update()
 

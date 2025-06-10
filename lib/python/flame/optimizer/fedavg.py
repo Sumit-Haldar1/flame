@@ -74,6 +74,7 @@ class FedAvg(AbstractOptimizer):
         self.agg_weights = base_weights
 
         if len(cache) == 0 or total == 0:
+            print(f"cahce is NONE!!!!: {len(cache)} {total}")
             return None
 
         for k in list(cache.iterkeys()):
