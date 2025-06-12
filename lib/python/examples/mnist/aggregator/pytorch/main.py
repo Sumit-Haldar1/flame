@@ -20,7 +20,8 @@ https://github.com/pytorch/examples/blob/master/mnist/main.py.
 """
 
 import logging
-
+import time
+from copy import deepcopy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,8 +29,20 @@ from flame.config import Config
 from flame.dataset import Dataset
 from flame.mode.horizontal.top_aggregator import TopAggregator
 from torchvision import datasets, transforms
+from flame.mode.message import MessageType
+from flame.common.util import weights_to_model_device
+from flame.optimizer.train_result import TrainResult
+from flame.common.util import (MLFramework, get_ml_framework_in_use,
+                               valid_frameworks, weights_to_device,
+                               weights_to_model_device)
+
+from flame.common.constants import DeviceType
+from datetime import datetime
+
 
 logger = logging.getLogger(__name__)
+
+PROP_ROUND_START_TIME = "round_start_time"
 
 
 class Net(nn.Module):
@@ -66,6 +79,7 @@ class PyTorchMnistAggregator(TopAggregator):
     """PyTorch Mnist Aggregator."""
 
     def __init__(self, config: Config) -> None:
+
         """Initialize a class instance."""
         self.config = config
         self.model = None
@@ -73,6 +87,8 @@ class PyTorchMnistAggregator(TopAggregator):
 
         self.device = None
         self.test_loader = None
+        self.trainer_rank = {'49d06b7526964db86cf37c70e8e0cdb6bd7aa745': 0,
+                              '49d06b7526964db86cf37c70e8e0cdb6bd7aa746': 1}
 
     def initialize(self):
         """Initialize role."""
@@ -124,6 +140,7 @@ class PyTorchMnistAggregator(TopAggregator):
         test_loss /= total
         test_accuray = correct / total
 
+        logger.info(f"Test round: {self._round-1}")
         logger.info(f"Test loss: {test_loss}")
         logger.info(f"Test accuracy: {correct}/{total} ({test_accuray})")
 
@@ -133,6 +150,196 @@ class PyTorchMnistAggregator(TopAggregator):
             'test-loss': test_loss,
             'test-accuracy': test_accuray
         })
+
+
+    def _aggregate_weights(self, tag: str) -> None:
+        channel = self.cm.get_by_tag(tag)
+        if not channel:
+            return
+
+        appended_weights = [0,0]
+        count_total = 0
+
+        alt1 = 0
+        alt2 = 1
+
+        for msg, metadata in channel.recv_fifo(channel.ends()):
+            end, timestamp = metadata
+            if not msg:
+                logger.debug(f"No data from {end}; skipping it")
+                continue
+
+            logger.info(f"Received data from {end}")
+     
+
+            weights = None
+            count = 0
+
+            if MessageType.WEIGHTS in msg:
+                weights = weights_to_model_device(msg[MessageType.WEIGHTS], self.model)
+                
+
+            if MessageType.DATASET_SIZE in msg:
+                count = msg[MessageType.DATASET_SIZE]
+
+            if MessageType.DATASAMPLER_METADATA in msg:
+                self.datasampler.handle_metadata_from_trainer(
+                    msg[MessageType.DATASAMPLER_METADATA], end, channel
+                )
+
+            logger.debug(f"{end}'s parameters trained with {count} samples")
+
+            if weights is not None and count > 0:
+                count_total += count
+                if end == list(self.trainer_rank.keys())[0]:
+                
+                    appended_weights [0] = weights
+
+
+                else:
+                    appended_weights [1] = weights
+
+
+
+        if (self._round-1) % 2 == 0 and (self._round-1) !=0:
+            temp = alt1
+            alt1 = alt2
+            alt2 = temp 
+      
+        concated = {}        
+
+        if len(appended_weights) == 2 and type(appended_weights[0]) != int and type(appended_weights[1]) != int :
+            concated['conv1.weight'] = torch.cat((appended_weights[alt1]['conv1.weight'], appended_weights[alt2]['conv1.weight']), dim=0)       
+
+            concated['conv1.bias'] = torch.cat((appended_weights[alt1]['conv1.bias'], appended_weights[alt2]['conv1.bias']), dim=0)  
+
+            combined = torch.cat((appended_weights[alt1]['conv2.weight'], appended_weights[alt2]['conv2.weight']), dim=1)
+            concated['conv2.weight'] = torch.cat((combined, combined), dim=0)
+
+            concated['conv2.bias'] = torch.cat((appended_weights[alt1]['conv2.bias'], appended_weights[alt2]['conv2.bias']), dim=0) 
+
+            combined = torch.cat((appended_weights[alt1]['fc1.weight'], appended_weights[alt2]['fc1.weight']), dim=1)
+            concated['fc1.weight'] = torch.cat((combined, combined), dim=0)
+
+            concated['fc1.bias'] = torch.cat((appended_weights[alt1]['fc1.bias'], appended_weights[alt2]['fc1.bias']), dim=0)
+
+
+            concated['fc2.weight'] = torch.cat((appended_weights[alt1]['fc2.weight'], appended_weights[alt2]['fc2.weight']), dim=1)
+
+            concated['fc2.bias'] = (appended_weights[alt1]['fc2.bias'] + appended_weights[alt2]['fc2.bias'])/2
+
+            tres = TrainResult(concated, count_total)
+
+            self.cache["concat"] = tres
+
+                
+        
+                        
+
+        logger.debug(f"Received and collected weights from {len(channel.ends())} trainers")
+
+        # if summed_weights is not None and count_total > 0:
+        #     # Concatenate lists into tensors
+        #     for k in summed_weights:
+        #         summed_weights[k] = torch.cat(summed_weights[k], dim=0)  # adjust dim if needed
+
+        #     self.cache["concat"] = TrainResult(summed_weights, count_total)
+        #     logger.info(f"Stored concatenated weights in cache with total count {count_total}")
+        # else:
+        #     logger.info("No valid weights received to concatenate")
+
+        # if count_total == 4000:
+            
+        #     self.weights = concated
+        #     self._update_model()
+        
+        if count_total == 4000:
+            
+            global_weights = self.optimizer.do(
+                deepcopy(self.weights),
+                self.cache,
+                total=count_total,
+                num_trainers=len(channel.ends()),
+            )
+            if global_weights is None:
+                logger.info("Failed model aggregation")
+                time.sleep(1)
+                return
+            self.weights = global_weights
+            self._update_model()
+    
+            
+
+    def _distribute_weights(self, tag: str) -> None:
+        
+        channel = self.cm.get_by_tag(tag)
+        if not channel:
+            logger.debug(f"channel not found for tag {tag}")
+            return
+
+        # this call waits for at least one peer to join this channel
+        channel.await_join()
+
+        # before distributing weights, update it from global model
+        self._update_weights()
+
+        selected_ends = channel.ends()
+        datasampler_metadata = self.datasampler.get_metadata(self._round, selected_ends)
+
+        print("end num: ", len(selected_ends))
+
+        # #Swapping logic
+        if (self._round-1) % 2 == 0 and (self._round-1) != 0 and len(selected_ends) == 2:
+                print((self._round-1))
+                temp = self.trainer_rank[selected_ends[0]]
+                self.trainer_rank[selected_ends[0]] = self.trainer_rank[selected_ends[1]]
+                self.trainer_rank[selected_ends[1]] = temp
+
+
+        # send out global model parameters to trainers
+        for end in selected_ends:
+            logger.debug(f"sending weights to {end}")
+            
+            
+            temp = self._slice_weights(self.weights, self.trainer_rank[end])
+            channel.send(
+                end,
+                {
+                    MessageType.WEIGHTS: weights_to_device(
+                        temp, DeviceType.CPU
+                    ),
+                    MessageType.ROUND: self._round,
+                    MessageType.DATASAMPLER_METADATA: datasampler_metadata,
+                },
+            )
+            # register round start time on each end for round duration measurement.
+            channel.set_end_property(
+                end, PROP_ROUND_START_TIME, (round, datetime.now())
+            )
+
+
+
+    def _slice_weights(self, state_dict, rank):
+        sliced = {}
+        for name, full_tensor in state_dict.items():
+            if name == "conv1.weight":
+                sliced[name] = full_tensor[rank * 16:(rank + 1) * 16]
+            elif name == "conv1.bias":
+                sliced[name] = full_tensor[rank * 16:(rank + 1) * 16]
+            elif name == "conv2.weight":
+                sliced[name] = full_tensor[rank * 32:(rank + 1) * 32,
+                                           rank * 16:(rank + 1) * 16]
+            elif name == "conv2.bias":
+                sliced[name] = full_tensor[rank * 32:(rank + 1) * 32]
+            elif name == "fc1.weight":
+                sliced[name] = full_tensor[rank * 64:(rank + 1) * 64, :4608]
+            elif name == "fc1.bias":
+                sliced[name] = full_tensor[rank * 64:(rank + 1) * 64]
+            elif name == "fc2.weight":
+                sliced[name] = full_tensor[:, rank * 64:(rank + 1) * 64]
+            elif name == "fc2.bias":
+                sliced[name] = full_tensor
+        return sliced
 
 
 if __name__ == "__main__":
@@ -146,5 +353,5 @@ if __name__ == "__main__":
     config = Config(args.config)
 
     a = PyTorchMnistAggregator(config)
-    a.compose()
+    a.compose() 
     a.run()

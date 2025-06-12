@@ -1,5 +1,5 @@
 {
-  "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa745",
+  "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa746",
   "backend": "p2p",
   "brokers": [
     {
@@ -48,7 +48,7 @@
     "batchSize": 32,
     "learningRate": 0.01,
     "rounds": 5,
-      "rank": 0,
+      "rank": 1,
   "world_size": 2,
     "epochs": 2
   },
