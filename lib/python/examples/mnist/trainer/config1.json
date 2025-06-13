@@ -1,8 +1,13 @@
 {
+<<<<<<< HEAD
   "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa742",
   "backend": "p2p",
   
  
+=======
+  "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa746",
+  "backend": "p2p",
+>>>>>>> main
   "brokers": [
     {
       "host": "localhost",
@@ -49,11 +54,18 @@
   "hyperparameters": {
     "batchSize": 32,
     "learningRate": 0.01,
+<<<<<<< HEAD
     "rank": 1,
     "world_size": 2,
     "rounds": 5,
     "epochs": 2
    
+=======
+    "rounds": 5,
+      "rank": 1,
+  "world_size": 2,
+    "epochs": 2
+>>>>>>> main
   },
    "tasklet": {
     "loop": {
@@ -85,5 +97,9 @@
   "realm": "default/us/west",
   "role": "trainer"
 
+<<<<<<< HEAD
  
 }
+=======
+}
+>>>>>>> main

@@ -54,14 +54,30 @@ class HorizontalSplitTrainer(Trainer):
         
         self.batch_size = self.config.hyperparameters.batch_size or 32
         self.model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
+<<<<<<< HEAD
         #self.optimizer = optim.Adadelta(self.model.parameters())
+=======
+        self.optimizer = optim.Adadelta(self.model.parameters())
+>>>>>>> main
         self.train_loader = None
+        
 
+<<<<<<< HEAD
         self.tmp_model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
+=======
+        # self.tmp_model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
 
 
         
+>>>>>>> main
+
+
+<<<<<<< HEAD
+        
     def initialize(self): pass
+=======
+        self.model = HorizontallySplitNet(self.rank, self.world_size).to(self.device)
+>>>>>>> main
 
     def load_data(self):
         transform = transforms.Compose([
@@ -77,8 +93,11 @@ class HorizontalSplitTrainer(Trainer):
 
         subset = data_utils.Subset(dataset, indices)
         self.train_loader = data_utils.DataLoader(subset, batch_size=self.batch_size, shuffle=True)
+<<<<<<< HEAD
 
     def train(self, i = 0):
+=======
+>>>>>>> main
 
         self._update_model()
         
@@ -227,6 +246,8 @@ class HorizontalSplitTrainer(Trainer):
                 sliced[name] = full_tensor
         return sliced
 
+   
+
 
 if __name__ == "__main__":
     import argparse
@@ -240,3 +261,7 @@ if __name__ == "__main__":
     t.run()
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> main

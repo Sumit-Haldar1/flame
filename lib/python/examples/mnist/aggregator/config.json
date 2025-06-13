@@ -47,8 +47,12 @@
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
+<<<<<<< HEAD
         
         "rounds": 30
+=======
+        "rounds": 40
+>>>>>>> main
     },
 
    

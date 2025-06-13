@@ -171,7 +171,7 @@ class Trainer(Role, metaclass=ABCMeta):
 
         # this call waits for at least one peer to join this channel
         channel.await_join()
-
+        print(self.weights['conv1.weight'][0])
         # one aggregator is sufficient
         end = channel.one_end(VAL_CH_STATE_SEND)
 
