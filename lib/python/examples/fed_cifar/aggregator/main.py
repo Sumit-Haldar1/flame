@@ -1,24 +1,3 @@
-# Copyright 2022 Cisco Systems, Inc. and its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# SPDX-License-Identifier: Apache-2.0
-"""MNIST horizontal FL aggregator for PyTorch.
-
-The example below is implemented based on the following example from pytorch:
-https://github.com/pytorch/examples/blob/master/mnist/main.py.
-"""
-
 import logging
 
 import torch
@@ -29,7 +8,6 @@ from flame.dataset import Dataset
 from flame.mode.horizontal.top_aggregator import TopAggregator
 from torchvision import datasets, transforms
 import torch.utils.data as data_utils
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -82,47 +60,27 @@ class PyTorchMnistAggregator(TopAggregator):
             "cuda" if torch.cuda.is_available() else "cpu")
 
         self.model = Net().to(self.device)
-  
-
-        if os.path.getsize('pretrained_weights.pth') != 0:
-            self.model.load_state_dict(torch.load('pretrained_weights.pth'))   
+        self.model.load_state_dict(torch.load('/home/cc/flame/lib/python/examples/mnist/aggregator/pretrained_weights.pth'))
 
 
-    def load_data(self) -> None:
-        """Load a test dataset."""
+
+    def load_data(self):
         transform = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.Resize(28),
             transforms.ToTensor(),
-            transforms.Normalize((0.1307, ), (0.3081, ))
+            transforms.Normalize((0.1307,), (0.3081,))
         ])
-
-        dataset = datasets.MNIST('./data',
-                                 train=False,
-                                 download=True,
-                                 transform=transform)
-
-        self.test_loader = torch.utils.data.DataLoader(dataset)
-
-        # store data into dataset for analysis (e.g., bias)
-        self.dataset = Dataset(dataloader=self.test_loader)
-
-
-    # def load_data(self):
-    #     transform = transforms.Compose([
-    #         transforms.Grayscale(num_output_channels=1),
-    #         transforms.Resize(28),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize((0.1307,), (0.3081,))
-    #     ])
-    #     try:
-    #         dataset = datasets.CIFAR10('./data', train=True, download=True, transform=transform)
-    #         indices = torch.arange(0, 5000)
-    #         subset = data_utils.Subset(dataset, indices)
-    #         self.test_loader = torch.utils.data.DataLoader(subset)
-    #         self.dataset = Dataset(dataloader=self.test_loader)
+        try:
+            dataset = datasets.CIFAR10('./data', train=True, download=True, transform=transform)
+            indices = torch.arange(0, 5000)
+            subset = data_utils.Subset(dataset, indices)
+            self.test_loader = torch.utils.data.DataLoader(subset)
+            self.dataset = Dataset(dataloader=self.test_loader)
             
-    #     except Exception as e:
-    #         logger.error(f"Failed to load CIFAR-10 dataset: {e}")
-    #         raise
+        except Exception as e:
+            logger.error(f"Failed to load CIFAR-10 dataset: {e}")
+            raise
 
     def train(self) -> None:
         """Train a model."""
@@ -150,6 +108,9 @@ class PyTorchMnistAggregator(TopAggregator):
         test_loss /= total
         test_accuray = correct / total
 
+
+    
+
       
 
         # Write results to a file instead of logging to terminal
@@ -167,8 +128,7 @@ class PyTorchMnistAggregator(TopAggregator):
         })
         
         # if self._round == self.config.hyperparameters.rounds:
-        #     print('yes working ')
-        #     torch.save(self.model.state_dict(), 'pretrained_weights.pth')
+        #     torch.save(self.model.state_dict(), '/home/cc/flame/lib/python/examples/mnist/aggregator/pretrained_weights.pth')
     
 
 

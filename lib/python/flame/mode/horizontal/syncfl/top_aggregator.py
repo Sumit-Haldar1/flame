@@ -331,6 +331,7 @@ class TopAggregator(Role, metaclass=ABCMeta):
             task_internal_init
             >> task_load_data
             >> task_init
+            >> task_eval
             >> loop(
                 task_put
                 >> task_get

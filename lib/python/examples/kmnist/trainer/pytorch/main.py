@@ -95,7 +95,7 @@ class PyTorchMnistTrainer(Trainer):
             transforms.Normalize((0.1307, ), (0.3081, ))
         ])
 
-        dataset = datasets.MNIST('./data',
+        dataset = datasets.KMNIST('./data',
                                  train=True,
                                  download=True,
                                  transform=transform)
@@ -127,7 +127,7 @@ class PyTorchMnistTrainer(Trainer):
 
     def train(self) -> None:
         """Train a model."""
-        self.optimizer = optim.Adadelta(self.model.parameters(), lr = 1.0)
+        self.optimizer = optim.Adadelta(self.model.parameters(), lr=0.1)
 
         for epoch in range(1, self.epochs + 1):
             self._train_epoch(epoch)

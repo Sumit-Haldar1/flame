@@ -40,14 +40,15 @@
             }
         }
     ],
-    "dataset": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+    "dataset": "https://github.com/GustavBaumgart/flame-datasets/raw/main/cifar10/test.npz",
     "dependencies": [
         "numpy >= 1.2.0"
     ],
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
-        "rounds": 30
+        "rounds": 30,
+        "world_size": 2
     },
     "baseModel": {
         "name": "",

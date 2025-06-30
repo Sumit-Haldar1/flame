@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # SPDX-License-Identifier: Apache-2.0
-"""MNIST horizontal FL trainer for PyTorch.
+"""MNIST horizontal FL aggregator for PyTorch.
 
 The example below is implemented based on the following example from pytorch:
 https://github.com/pytorch/examples/blob/master/mnist/main.py.
@@ -24,13 +24,12 @@ import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-import torch.utils.data as data_utils
 from flame.config import Config
-from flame.mode.horizontal.trainer import Trainer
-
-
+from flame.dataset import Dataset
+from flame.mode.horizontal.top_aggregator import TopAggregator
 from torchvision import datasets, transforms
+import torch.utils.data as data_utils
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -65,47 +64,45 @@ class Net(nn.Module):
         return output
 
 
-class PyTorchMnistTrainer(Trainer):
-    """PyTorch Mnist Trainer."""
+class PyTorchMnistAggregator(TopAggregator):
+    """PyTorch Mnist Aggregator."""
 
     def __init__(self, config: Config) -> None:
         """Initialize a class instance."""
         self.config = config
-        self.dataset_size = 0
         self.model = None
+        self.dataset: Dataset = None
 
         self.device = None
-        self.train_loader = None
+        self.test_loader = None
 
-        self.epochs = self.config.hyperparameters.epochs
-        self.rank = self.config.hyperparameters.rank
-        self.batch_size = self.config.hyperparameters.batch_size or 16
-
-    def initialize(self) -> None:
+    def initialize(self):
         """Initialize role."""
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
 
         self.model = Net().to(self.device)
 
+        self.model.load_state_dict(torch.load('/home/cc/flame/lib/python/examples/mnist/aggregator/pretrained_weights.pth'))   
+
+
     def load_data(self) -> None:
-        """Load data."""
+        """Load a test dataset."""
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307, ), (0.3081, ))
         ])
 
-        dataset = datasets.MNIST('./data',
-                                 train=True,
+        dataset = datasets.KMNIST('./data',
+                                 train=False,
                                  download=True,
                                  transform=transform)
 
-        indices = torch.arange(2000)
-        dataset = data_utils.Subset(dataset, indices)
-        train_kwargs = {'batch_size': self.batch_size}
+        self.test_loader = torch.utils.data.DataLoader(dataset)
 
-        self.train_loader = torch.utils.data.DataLoader(
-            dataset, **train_kwargs)        
+        # store data into dataset for analysis (e.g., bias)
+        self.dataset = Dataset(dataloader=self.test_loader)
+
 
     # def load_data(self):
     #     transform = transforms.Compose([
@@ -116,46 +113,59 @@ class PyTorchMnistTrainer(Trainer):
     #     ])
     #     try:
     #         dataset = datasets.CIFAR10('./data', train=True, download=True, transform=transform)
-    #         indices = torch.arange(2000)
+    #         indices = torch.arange(0, 5000)
     #         subset = data_utils.Subset(dataset, indices)
-    #         self.train_loader = data_utils.DataLoader(subset, batch_size=self.batch_size, shuffle=True)
+    #         self.test_loader = torch.utils.data.DataLoader(subset)
+    #         self.dataset = Dataset(dataloader=self.test_loader)
             
     #     except Exception as e:
     #         logger.error(f"Failed to load CIFAR-10 dataset: {e}")
     #         raise
 
-
     def train(self) -> None:
         """Train a model."""
-        self.optimizer = optim.Adadelta(self.model.parameters(), lr = 1.0)
-
-        for epoch in range(1, self.epochs + 1):
-            self._train_epoch(epoch)
-
-        # save dataset size so that the info can be shared with aggregator
-        self.dataset_size = len(self.train_loader.dataset)
-
-    def _train_epoch(self, epoch):
-        self.model.train()
-
-        for batch_idx, (data, target) in enumerate(self.train_loader):
-            data, target = data.to(self.device), target.to(self.device)
-            self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            self.optimizer.step()
-            if batch_idx % 10 == 0:
-                done = batch_idx * len(data)
-                total = len(self.train_loader.dataset)
-                percent = 100. * batch_idx / len(self.train_loader)
-                logger.info(f"epoch: {epoch} [{done}/{total} ({percent:.0f}%)]"
-                            f"\tloss: {loss.item():.6f}")
+        # Implement this if testing is needed in aggregator
+        pass
 
     def evaluate(self) -> None:
-        """Evaluate a model."""
-        # Implement this if testing is needed in trainer
-        pass
+        """Evaluate (test) a model."""
+        self.model.eval()
+        test_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in self.test_loader:
+                data, target = data.to(self.device), target.to(self.device)
+                output = self.model(data)
+                test_loss += F.nll_loss(
+                    output, target,
+                    reduction='sum').item()  # sum up batch loss
+                pred = output.argmax(
+                    dim=1,
+                    keepdim=True)  # get the index of the max log-probability
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+        total = len(self.test_loader.dataset)
+        test_loss /= total
+        test_accuray = correct / total
+
+      
+
+        # Write results to a file instead of logging to terminal
+        with open('evaluation_results.txt', 'a') as f:
+            f.write(f"Test round: {self._round-1}\n")
+            f.write(f"Test loss: {test_loss}\n")
+            f.write(f"Test accuracy: {correct}/{total} ({test_accuray})\n")
+            f.write("\n")  # Add a blank line for readability
+
+        # update metrics after each evaluation so that the metrics can be
+        # logged in a model registry.
+        self.update_metrics({
+            'test-loss': test_loss,
+            'test-accuracy': test_accuray
+        })
+        
+  
+    
 
 
 if __name__ == "__main__":
@@ -165,8 +175,9 @@ if __name__ == "__main__":
     parser.add_argument('config', nargs='?', default="./config.json")
 
     args = parser.parse_args()
+
     config = Config(args.config)
 
-    t = PyTorchMnistTrainer(config)
-    t.compose()
-    t.run()
+    a = PyTorchMnistAggregator(config)
+    a.compose()
+    a.run()

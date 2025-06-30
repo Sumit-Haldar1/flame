@@ -1,5 +1,5 @@
 {
-    "taskid": "49d06b7526964db86cf37c70e8e0cdb6bd7aa742",
+    "taskid": "505f9fc483cf4df68a2409257b5fad7d3c580371",
     "backend": "p2p",
     "brokers": [
         {
@@ -40,18 +40,19 @@
             }
         }
     ],
-    "dataset": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+    "dataset": "https://github.com/cvdfoundation/kmnist/blob/master/kmnist.npz?raw=true",
     "dependencies": [
         "numpy >= 1.2.0"
     ],
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
-        "rounds": 30
+        "rank": 0,
+        "rounds": 5
     },
     "baseModel": {
         "name": "",
-        "version": 2
+        "version": 1
     },
     "job": {
         "id": "622a358619ab59012eabeefb",
@@ -70,6 +71,6 @@
         "kwargs": {}
     },
     "maxRunTime": 300,
-    "realm": "default",
-    "role": "aggregator"
+    "realm": "default/us/west",
+    "role": "trainer"
 }

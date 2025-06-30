@@ -40,14 +40,14 @@
             }
         }
     ],
-    "dataset": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+    "dataset": "https://github.com/cvdfoundation/kmnist/blob/master/kmnist.npz?raw=true",
     "dependencies": [
         "numpy >= 1.2.0"
     ],
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
-        "rounds": 30
+        "rounds": 20
     },
     "baseModel": {
         "name": "",

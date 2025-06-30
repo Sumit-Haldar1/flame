@@ -1,0 +1,120 @@
+Test round: 0
+Test loss: 0.21390253592974942
+Test accuracy: 9517/10000 (0.9517)
+
+Test round: 1
+Test loss: 0.17559022143816277
+Test accuracy: 9570/10000 (0.957)
+
+Test round: 2
+Test loss: 0.19641464681423734
+Test accuracy: 9599/10000 (0.9599)
+
+Test round: 3
+Test loss: 0.23816877066128417
+Test accuracy: 9550/10000 (0.955)
+
+Test round: 4
+Test loss: 0.20386275381226096
+Test accuracy: 9608/10000 (0.9608)
+
+Test round: 5
+Test loss: 0.17074191135583663
+Test accuracy: 9652/10000 (0.9652)
+
+Test round: 6
+Test loss: 0.20441377545961542
+Test accuracy: 9647/10000 (0.9647)
+
+Test round: 7
+Test loss: 0.21421039535072905
+Test accuracy: 9615/10000 (0.9615)
+
+Test round: 8
+Test loss: 0.2678706940369325
+Test accuracy: 9635/10000 (0.9635)
+
+Test round: 9
+Test loss: 0.2269842471846518
+Test accuracy: 9634/10000 (0.9634)
+
+Test round: 10
+Test loss: 0.236969106717478
+Test accuracy: 9623/10000 (0.9623)
+
+Test round: 11
+Test loss: 0.25935035924224115
+Test accuracy: 9621/10000 (0.9621)
+
+Test round: 12
+Test loss: 0.25327826400095854
+Test accuracy: 9599/10000 (0.9599)
+
+Test round: 13
+Test loss: 0.2366021903175864
+Test accuracy: 9576/10000 (0.9576)
+
+Test round: 14
+Test loss: 0.24166782469176742
+Test accuracy: 9604/10000 (0.9604)
+
+Test round: 15
+Test loss: 0.2695883103658147
+Test accuracy: 9631/10000 (0.9631)
+
+Test round: 16
+Test loss: 0.2140710774449169
+Test accuracy: 9654/10000 (0.9654)
+
+Test round: 17
+Test loss: 0.282142249007567
+Test accuracy: 9632/10000 (0.9632)
+
+Test round: 18
+Test loss: 0.25145992122353844
+Test accuracy: 9632/10000 (0.9632)
+
+Test round: 19
+Test loss: 0.25230575483160145
+Test accuracy: 9643/10000 (0.9643)
+
+Test round: 20
+Test loss: 0.26746666319329565
+Test accuracy: 9623/10000 (0.9623)
+
+Test round: 21
+Test loss: 0.26995068223994095
+Test accuracy: 9601/10000 (0.9601)
+
+Test round: 22
+Test loss: 0.2523831528957615
+Test accuracy: 9638/10000 (0.9638)
+
+Test round: 23
+Test loss: 0.31890963029315783
+Test accuracy: 9610/10000 (0.961)
+
+Test round: 24
+Test loss: 0.2609393722490318
+Test accuracy: 9639/10000 (0.9639)
+
+Test round: 25
+Test loss: 0.2604499475069815
+Test accuracy: 9665/10000 (0.9665)
+
+Test round: 26
+Test loss: 0.2446423864014846
+Test accuracy: 9673/10000 (0.9673)
+
+Test round: 27
+Test loss: 0.2534946464535324
+Test accuracy: 9668/10000 (0.9668)
+
+Test round: 28
+Test loss: 0.28337822781688937
+Test accuracy: 9622/10000 (0.9622)
+
+Test round: 29
+Test loss: 0.274345798769097
+Test accuracy: 9635/10000 (0.9635)
+

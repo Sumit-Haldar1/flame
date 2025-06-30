@@ -40,14 +40,16 @@
             }
         }
     ],
-    "dataset": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
+    "dataset": "https://github.com/zalandoresearch/fashion-mnist/raw/master/data/fashion-mnist.npz",
     "dependencies": [
         "numpy >= 1.2.0"
     ],
     "hyperparameters": {
         "batchSize": 32,
         "learningRate": 0.01,
-        "rounds": 30
+        "rounds": 30,
+        "world_size": 4
+        
     },
     "baseModel": {
         "name": "",

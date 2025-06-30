@@ -1,23 +1,4 @@
-# Copyright 2022 Cisco Systems, Inc. and its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# SPDX-License-Identifier: Apache-2.0
-"""MNIST horizontal FL trainer for PyTorch.
 
-The example below is implemented based on the following example from pytorch:
-https://github.com/pytorch/examples/blob/master/mnist/main.py.
-"""
 
 import logging
 
@@ -88,46 +69,27 @@ class PyTorchMnistTrainer(Trainer):
 
         self.model = Net().to(self.device)
 
-    def load_data(self) -> None:
-        """Load data."""
+    def load_data(self):
         transform = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.Resize(28),
             transforms.ToTensor(),
-            transforms.Normalize((0.1307, ), (0.3081, ))
+            transforms.Normalize((0.1307,), (0.3081,))
         ])
-
-        dataset = datasets.MNIST('./data',
-                                 train=True,
-                                 download=True,
-                                 transform=transform)
-
-        indices = torch.arange(2000)
-        dataset = data_utils.Subset(dataset, indices)
-        train_kwargs = {'batch_size': self.batch_size}
-
-        self.train_loader = torch.utils.data.DataLoader(
-            dataset, **train_kwargs)        
-
-    # def load_data(self):
-    #     transform = transforms.Compose([
-    #         transforms.Grayscale(num_output_channels=1),
-    #         transforms.Resize(28),
-    #         transforms.ToTensor(),
-    #         transforms.Normalize((0.1307,), (0.3081,))
-    #     ])
-    #     try:
-    #         dataset = datasets.CIFAR10('./data', train=True, download=True, transform=transform)
-    #         indices = torch.arange(2000)
-    #         subset = data_utils.Subset(dataset, indices)
-    #         self.train_loader = data_utils.DataLoader(subset, batch_size=self.batch_size, shuffle=True)
+        try:
+            dataset = datasets.CIFAR10('./data', train=True, download=True, transform=transform)
+            indices = torch.arange(2000)
+            subset = data_utils.Subset(dataset, indices)
+            self.train_loader = data_utils.DataLoader(subset, batch_size=self.batch_size, shuffle=True)
             
-    #     except Exception as e:
-    #         logger.error(f"Failed to load CIFAR-10 dataset: {e}")
-    #         raise
+        except Exception as e:
+            logger.error(f"Failed to load CIFAR-10 dataset: {e}")
+            raise
 
 
     def train(self) -> None:
         """Train a model."""
-        self.optimizer = optim.Adadelta(self.model.parameters(), lr = 1.0)
+        self.optimizer = optim.Adadelta(self.model.parameters(), lr=0.1)
 
         for epoch in range(1, self.epochs + 1):
             self._train_epoch(epoch)
