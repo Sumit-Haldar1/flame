@@ -50,24 +50,6 @@ logger = logging.getLogger(__name__)
 PROP_ROUND_START_TIME = "round_start_time"
 
 
-class FEMNISTDataset(Dataset):
-    def __init__(self, npz_file, transform=None):
-        data = np.load(npz_file)
-        self.images = data["images"]
-        self.labels = data["labels"]
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        img = self.images[idx].astype(np.uint8)
-        img = Image.fromarray(img, mode="L")
-        if self.transform:
-            img = self.transform(img)
-        return img, int(self.labels[idx])
-
-
 class Net(nn.Module):
     """Net class."""
 
